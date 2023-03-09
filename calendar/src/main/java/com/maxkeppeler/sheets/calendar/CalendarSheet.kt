@@ -133,6 +133,10 @@ class CalendarSheet : Sheet() {
     private var selectedDates: MutableList<LocalDate> = mutableListOf()
     private var displayButtons = true
 
+    // Variables for Calendar.Constraints
+    private var minDate: LocalDate? = null
+    private var maxDate: LocalDate? = null
+
     /**
      * Sets the maximum number of dates an user is able to pick (inclusive)
      * Only for [SelectionMode.DATE_MULTIPLE]
@@ -239,6 +243,16 @@ class CalendarSheet : Sheet() {
     /** Set the range of years into the past and future. */
     fun rangeYears(@IntRange(from = 1, to = 200) rangeYears: Int) {
         this.rangeYears = rangeYears
+    }
+
+    /** Set the min date to display. */
+    fun minDate(minDate: LocalDate) {
+        this.minDate = minDate
+    }
+
+    /** Set the max date to display. */
+    fun maxDate(maxDate: LocalDate) {
+        this.maxDate = maxDate
     }
 
     /**
@@ -606,8 +620,15 @@ class CalendarSheet : Sheet() {
         }
 
         val now: YearMonth = YearMonth.now()
-        val start = if (disablePast) now else now.minusYears(rangeYears.toLong())
-        val end = if (disableFuture) now else now.plusYears(rangeYears.toLong())
+
+        var start = if (disablePast) now else now.minusYears(rangeYears.toLong())
+        var end = if (disableFuture) now else now.plusYears(rangeYears.toLong())
+
+        /** When set CustomRange */
+        if (minDate != null && maxDate != null) {
+            start = YearMonth.of(minDate!!.year, minDate!!.month)
+            end = YearMonth.of(maxDate!!.year, maxDate!!.month)
+        }
 
         val firstDayOfWeek = WeekFields.of(Locale.getDefault()).firstDayOfWeek
 
@@ -1016,13 +1037,22 @@ class CalendarSheet : Sheet() {
 
         val years = mutableListOf<Year>()
 
-        val rangePast = if (!disablePast) -rangeYears..-1L else null
-        val rangeFuture = if (!disableFuture) 1L..rangeYears else null
 
-        val now = Year.now()
-        rangePast?.forEach { years.add(now.plusYears(it)) }
-        years.add(now)
-        rangeFuture?.forEach { years.add(now.plusYears(it)) }
+        if (minDate != null && maxDate != null) {
+            /** When set CustomRange */
+            for (i in minDate!!.year..maxDate!!.year) {
+                years.add(Year.of(i))
+            }
+        } else {
+            /** Use default yearsRange */
+            val rangePast = if (!disablePast) -rangeYears..-1L else null
+            val rangeFuture = if (!disableFuture) 1L..rangeYears else null
+
+            val now = Year.now()
+            rangePast?.forEach { years.add(now.plusYears(it)) }
+            years.add(now)
+            rangeFuture?.forEach { years.add(now.plusYears(it)) }
+        }
 
         return years
     }
